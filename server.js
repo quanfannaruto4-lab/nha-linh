@@ -7,4 +7,6 @@ app.get("/", (req, res) => {
   res.send("IP của bạn: " + ip);
 });
 
-app.listen(3000);
+app.listen(3000, () => {
+  console.log("Server running...");
+});
