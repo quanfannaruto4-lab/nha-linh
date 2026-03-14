@@ -6,28 +6,32 @@ let visitors = [];
 
 app.get("/", async (req, res) => {
 
-  const ip = req.headers["x-forwarded-for"]?.split(",")[0] || req.socket.remoteAddress;
+  const ip =
+    req.headers["x-forwarded-for"]?.split(",")[0] ||
+    req.socket.remoteAddress;
 
-  const response = await fetch(`https://ipapi.co/${ip}/json/`);
-  const data = await response.json();
+  try {
 
-  const visitor = {
-    ip: ip,
-    city: data.city,
-    country: data.country_name,
-    lat: data.latitude,
-    lon: data.longitude,
-    device: req.headers["user-agent"],
-    time: new Date().toLocaleString()
-  };
+    const response = await fetch(`https://ipapi.co/${ip}/json/`);
+    const data = await response.json();
 
-  visitors.push(visitor);
+    visitors.push({
+      ip: ip,
+      city: data.city,
+      lat: data.latitude,
+      lon: data.longitude,
+      time: new Date().toLocaleString()
+    });
 
-  res.send(`
-  IP: ${ip}<br>
-  City: ${data.city}<br>
-  <a href="/dashboard">Dashboard</a>
-  `);
+    res.send(`
+      IP: ${ip}<br>
+      City: ${data.city}<br><br>
+      <a href="/dashboard">Dashboard</a>
+    `);
+
+  } catch (e) {
+    res.send("Error getting IP info");
+  }
 
 });
 
@@ -37,15 +41,11 @@ app.get("/dashboard", (req, res) => {
 
   visitors.forEach(v => {
     html += `
-    <p>
-    IP: ${v.ip}<br>
-    City: ${v.city}<br>
-    Time: ${v.time}<br>
-    <a href="https://www.google.com/maps?q=${v.lat},${v.lon}" target="_blank">
-    Map
-    </a>
-    </p>
-    <hr>
+      IP: ${v.ip}<br>
+      City: ${v.city}<br>
+      Time: ${v.time}<br>
+      <a href="https://www.google.com/maps?q=${v.lat},${v.lon}" target="_blank">Map</a>
+      <hr>
     `;
   });
 
