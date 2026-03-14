@@ -1,65 +1,58 @@
 const express = require("express");
-const https = require("https");
-const fetch = require("node-fetch");
 
 const app = express();
 
-app.get("/", (req, res) => {
-  const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
+let visitors = [];
+
 app.get("/", async (req, res) => {
 
-  https.get(`https://ipapi.co/${ip}/json/`, (resp) => {
-    let data = "";
   const ip = req.headers["x-forwarded-for"]?.split(",")[0] || req.socket.remoteAddress;
 
-    resp.on("data", chunk => {
-      data += chunk;
-    });
-  try {
+  const response = await fetch(`https://ipapi.co/${ip}/json/`);
+  const data = await response.json();
 
-    resp.on("end", () => {
-      const info = JSON.parse(data);
-    const response = await fetch(`https://ipapi.co/${ip}/json/`);
-    const data = await response.json();
+  const visitor = {
+    ip: ip,
+    city: data.city,
+    country: data.country_name,
+    lat: data.latitude,
+    lon: data.longitude,
+    device: req.headers["user-agent"],
+    time: new Date().toLocaleString()
+  };
 
-      const city = info.city;
-      const country = info.country_name;
-    const city = data.city;
-    const country = data.country_name;
-    const lat = data.latitude;
-    const lon = data.longitude;
+  visitors.push(visitor);
 
-      console.log("IP:", ip);
-      console.log("City:", city);
-    console.log("IP:", ip);
-    console.log("City:", city);
-    console.log("Coordinates:", lat, lon);
+  res.send(`
+  IP: ${ip}<br>
+  City: ${data.city}<br>
+  <a href="/dashboard">Dashboard</a>
+  `);
 
-      res.send(`IP: ${ip} <br> Thành phố: ${city} <br> Quốc gia: ${country}`);
-    });
-    res.send(`
-      <h2>Visitor Info</h2>
-      IP: ${ip} <br>
-      City: ${city} <br>
-      Country: ${country} <br>
-      Latitude: ${lat} <br>
-      Longitude: ${lon} <br><br>
-
-      <a href="https://www.google.com/maps?q=${lat},${lon}" target="_blank">
-      Xem vị trí trên Google Maps
-      </a>
-    `);
-
-  } catch (error) {
-    res.send("Không lấy được vị trí IP");
-  }
-
-  }).on("error", () => {
-    res.send("Không tra được IP");
-  });
 });
 
-app.listen(3000);
+app.get("/dashboard", (req, res) => {
+
+  let html = "<h1>Visitors</h1>";
+
+  visitors.forEach(v => {
+    html += `
+    <p>
+    IP: ${v.ip}<br>
+    City: ${v.city}<br>
+    Time: ${v.time}<br>
+    <a href="https://www.google.com/maps?q=${v.lat},${v.lon}" target="_blank">
+    Map
+    </a>
+    </p>
+    <hr>
+    `;
+  });
+
+  res.send(html);
+
+});
+
 app.listen(3000, () => {
-  console.log("Server running...");
+  console.log("Server running");
 });
