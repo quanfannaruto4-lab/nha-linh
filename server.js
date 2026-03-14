@@ -2,57 +2,37 @@ const express = require("express");
 
 const app = express();
 
-let visitors = [];
-
 app.get("/", async (req, res) => {
 
-  const ip =
-    req.headers["x-forwarded-for"]?.split(",")[0] ||
-    req.socket.remoteAddress;
+  const ip = req.headers["x-forwarded-for"]?.split(",")[0] || "8.8.8.8";
 
   try {
 
-    const response = await fetch(`https://ipapi.co/${ip}/json/`);
+    const response = await fetch(`http://ip-api.com/json/${ip}`);
     const data = await response.json();
 
-    visitors.push({
-      ip: ip,
-      city: data.city,
-      lat: data.latitude,
-      lon: data.longitude,
-      time: new Date().toLocaleString()
-    });
-
     res.send(`
+      <h2>IP Info</h2>
       IP: ${ip}<br>
-      City: ${data.city}<br><br>
-      <a href="/dashboard">Dashboard</a>
+      City: ${data.city}<br>
+      Country: ${data.country}<br>
+      Latitude: ${data.lat}<br>
+      Longitude: ${data.lon}<br><br>
+
+      <a href="https://www.google.com/maps?q=${data.lat},${data.lon}" target="_blank">
+      Xem vị trí trên Google Maps
+      </a>
     `);
 
-  } catch (e) {
+  } catch (err) {
+
+    console.log(err);
     res.send("Error getting IP info");
+
   }
 
 });
 
-app.get("/dashboard", (req, res) => {
-
-  let html = "<h1>Visitors</h1>";
-
-  visitors.forEach(v => {
-    html += `
-      IP: ${v.ip}<br>
-      City: ${v.city}<br>
-      Time: ${v.time}<br>
-      <a href="https://www.google.com/maps?q=${v.lat},${v.lon}" target="_blank">Map</a>
-      <hr>
-    `;
-  });
-
-  res.send(html);
-
-});
-
-app.listen(3000, () => {
+app.listen(process.env.PORT || 3000, () => {
   console.log("Server running");
 });
